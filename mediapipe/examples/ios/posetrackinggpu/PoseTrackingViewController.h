@@ -19,6 +19,8 @@
 @interface PoseTrackingViewController : CommonViewController {
   NSMutableArray *jsonPoseDataList;
   int maxAngle;
+  // total  delta divide coefficient （to show higher score for same tolerance scope）default 3.0
+  double toleranceCoefficient;
   NSArray *matchPmsKeys;
 //    NSString *textInfo;
 }

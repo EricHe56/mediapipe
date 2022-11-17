@@ -27,6 +27,7 @@ static const char* kLandmarksOutputStream = "pose_landmarks";
   
   // init
   maxAngle = 10;
+  toleranceCoefficient = 3.0;
   matchPmsKeys = @[@"angle11to13", @"angle12to14", @"angle13to15",  @"angle14to16", @"angle23to25", @"angle24to26", @"angle25to27", @"angle26to28"];
   
   // load json from https url
@@ -116,7 +117,7 @@ static const char* kLandmarksOutputStream = "pose_landmarks";
       int poseIdx = [result[@"poseIdx"] intValue];
       NSLog(@"[TS:%lld] result: %@", packet.Timestamp().Value(), result);
       if (poseIdx != -1) {
-          long score = lround(1000000.0*(maxAngle-(totalDelta/matchPmsKeys.count))/maxAngle);
+          long score = lround(1000000.0*(maxAngle-(totalDelta/matchPmsKeys.count/toleranceCoefficient))/maxAngle);
           textInfo = [NSString stringWithFormat:@"matched pose: %d score: %f ts: %lld", (poseIdx+1), (score/10000.0), packet.Timestamp().Value()];
 //          tView.post(new Runnable() {
 //              @Override
