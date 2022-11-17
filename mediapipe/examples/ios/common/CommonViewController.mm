@@ -60,7 +60,7 @@ static const char* kVideoQueueLabel = "com.google.mediapipe.example.videoQueue";
 
   // Parse the graph config resource into mediapipe::CalculatorGraphConfig proto object.
   mediapipe::CalculatorGraphConfig config;
-  config.ParseFromArray(data.bytes, data.length);
+  config.ParseFromArray(data.bytes, (int)data.length);
 
   // Create MediaPipe graph with mediapipe::CalculatorGraphConfig proto object.
   MPPGraph* newGraph = [[MPPGraph alloc] initWithGraphConfig:config];
@@ -71,6 +71,19 @@ static const char* kVideoQueueLabel = "com.google.mediapipe.example.videoQueue";
 
 - (void)viewDidLoad {
   [super viewDidLoad];
+  
+//    _infoLabel = [ [UILabel alloc ] initWithFrame:CGRectMake((self.view.bounds.size.width / 2), 0.0, 150.0, 43.0) ];
+  _infoLabel = [ [UILabel alloc ] initWithFrame:CGRectMake(0.0, 20.0, (self.view.bounds.size.width), 25.0) ];
+  _infoLabel.textAlignment =  NSTextAlignmentLeft;
+  _infoLabel.textColor = [UIColor whiteColor];
+  _infoLabel.backgroundColor = [UIColor redColor];
+  _infoLabel.font = [UIFont fontWithName:@"Arial Rounded MT Bold" size:(18.0)];
+  [self.view addSubview:_infoLabel];
+  textInfo = @"";
+  _infoLabel.text = [NSString stringWithFormat: @"%d", 0];
+//    [self.view bringSubviewToFront:_infoLabel];
+//    [self.view sendSubviewToBack:_infoLabel];
+
 
   self.renderer = [[MPPLayerRenderer alloc] init];
   self.renderer.layer.frame = self.liveView.layer.bounds;
@@ -176,6 +189,15 @@ static const char* kVideoQueueLabel = "com.google.mediapipe.example.videoQueue";
     return;
   }
 
+  if (self.imageBufferWidth == 0) {
+    self.imageBufferWidth = CVPixelBufferGetWidth(imageBuffer);
+  }
+  if (self.imageBufferHeight == 0) {
+    self.imageBufferHeight = CVPixelBufferGetHeight(imageBuffer);
+  }
+//  MPPTimestampConverter* pvfTimestampConverter = [[MPPTimestampConverter alloc] init];
+//  NSLog(@"[TS:%lld] imageBuffer size: %zu %zu", (pvfTimestampConverter.lastTimestamp).Value(), self.imageBufferWidth, CVPixelBufferGetHeight(imageBuffer));
+
   [self.mediapipeGraph sendPixelBuffer:imageBuffer
                             intoStream:self.graphInputStream
                             packetType:MPPPacketTypePixelBuffer
@@ -193,6 +215,8 @@ static const char* kVideoQueueLabel = "com.google.mediapipe.example.videoQueue";
     CVPixelBufferRetain(pixelBuffer);
     dispatch_async(dispatch_get_main_queue(), ^{
       [self.renderer renderPixelBuffer:pixelBuffer];
+      self.infoLabel.text = textInfo;
+      [self.view bringSubviewToFront:_infoLabel];
       CVPixelBufferRelease(pixelBuffer);
     });
   }

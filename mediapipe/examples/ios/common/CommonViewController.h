@@ -25,7 +25,9 @@ typedef NS_ENUM(NSInteger, MediaPipeDemoSourceMode) {
   MediaPipeDemoSourceVideo
 };
 
-@interface CommonViewController : UIViewController <MPPGraphDelegate, MPPInputSourceDelegate>
+@interface CommonViewController : UIViewController <MPPGraphDelegate, MPPInputSourceDelegate> {
+  NSString* textInfo;
+}
 
 // The MediaPipe graph currently in use. Initialized in viewDidLoad, started in
 // viewWillAppear: and sent video frames on videoQueue.
@@ -46,6 +48,9 @@ typedef NS_ENUM(NSInteger, MediaPipeDemoSourceMode) {
 // Inform the user when camera is unavailable.
 @property(nonatomic) IBOutlet UILabel* noCameraLabel;
 
+// show info
+@property (strong, nonatomic) UILabel* infoLabel;
+
 // Display the camera preview frames.
 @property(strong, nonatomic) IBOutlet UIView* liveView;
 
@@ -63,5 +68,12 @@ typedef NS_ENUM(NSInteger, MediaPipeDemoSourceMode) {
 
 // Graph output stream.
 @property(nonatomic) const char* graphOutputStream;
+
+// imageBufferWidth
+@property(nonatomic) size_t imageBufferWidth;
+
+// imageBufferHeight
+@property(nonatomic) size_t imageBufferHeight;
+
 
 @end

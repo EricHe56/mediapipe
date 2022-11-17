@@ -16,6 +16,11 @@
 
 #import "mediapipe/examples/ios/common/CommonViewController.h"
 
-@interface PoseTrackingViewController : CommonViewController
+@interface PoseTrackingViewController : CommonViewController {
+  NSMutableArray *jsonPoseDataList;
+  int maxAngle;
+  NSArray *matchPmsKeys;
+//    NSString *textInfo;
+}
 
 @end
