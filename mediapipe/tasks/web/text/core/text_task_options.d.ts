@@ -14,4 +14,10 @@
  * limitations under the License.
  */
 
-export {ClassifierOptions as ImageClassifierOptions} from '../../../../tasks/web/core/classifier_options';
+import {BaseOptions} from '../../../../tasks/web/core/base_options';
+
+/** The options for configuring a MediaPipe Text task. */
+export declare interface TextTaskOptions {
+  /** Options to configure the loading of the model assets. */
+  baseOptions?: BaseOptions;
+}

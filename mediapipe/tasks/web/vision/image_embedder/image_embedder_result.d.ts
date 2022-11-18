@@ -14,4 +14,4 @@
  * limitations under the License.
  */
 
-export {ClassifierOptions as AudioClassifierOptions} from '../../../../tasks/web/core/classifier_options';
+export {Embedding, EmbeddingResult as ImageEmbedderResult} from '../../../../tasks/web/components/containers/embedding_result';

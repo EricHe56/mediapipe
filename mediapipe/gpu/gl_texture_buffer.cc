@@ -18,6 +18,11 @@
 #include "mediapipe/gpu/gl_texture_view.h"
 #include "mediapipe/gpu/gpu_buffer_storage_image_frame.h"
 
+#if MEDIAPIPE_GPU_BUFFER_USE_CV_PIXEL_BUFFER
+#include "mediapipe/gpu/gl_texture_util.h"
+#include "mediapipe/gpu/gpu_buffer_storage_cv_pixel_buffer.h"
+#endif  // MEDIAPIPE_GPU_BUFFER_USE_CV_PIXEL_BUFFER
+
 namespace mediapipe {
 
 std::unique_ptr<GlTextureBuffer> GlTextureBuffer::Wrap(
@@ -250,9 +255,8 @@ void GlTextureBuffer::WaitForConsumersOnGpu() {
   // precisely, on only one GL context.
 }
 
-GlTextureView GlTextureBuffer::GetReadView(
-    internal::types<GlTextureView>, std::shared_ptr<GpuBuffer> gpu_buffer,
-    int plane) const {
+GlTextureView GlTextureBuffer::GetReadView(internal::types<GlTextureView>,
+                                           int plane) const {
   auto gl_context = GlContext::GetCurrent();
   CHECK(gl_context);
   CHECK_EQ(plane, 0);
@@ -264,13 +268,11 @@ GlTextureView GlTextureBuffer::GetReadView(
     DidRead(texture.gl_context()->CreateSyncToken());
   };
   return GlTextureView(gl_context.get(), target(), name(), width(), height(),
-                       std::move(gpu_buffer), plane, std::move(detach),
-                       nullptr);
+                       plane, std::move(detach), nullptr);
 }
 
-GlTextureView GlTextureBuffer::GetWriteView(
-    internal::types<GlTextureView>, std::shared_ptr<GpuBuffer> gpu_buffer,
-    int plane) {
+GlTextureView GlTextureBuffer::GetWriteView(internal::types<GlTextureView>,
+                                            int plane) {
   auto gl_context = GlContext::GetCurrent();
   CHECK(gl_context);
   CHECK_EQ(plane, 0);
@@ -281,8 +283,7 @@ GlTextureView GlTextureBuffer::GetWriteView(
   GlTextureView::DoneWritingFn done_writing =
       [this](const GlTextureView& texture) { ViewDoneWriting(texture); };
   return GlTextureView(gl_context.get(), target(), name(), width(), height(),
-                       std::move(gpu_buffer), plane, nullptr,
-                       std::move(done_writing));
+                       plane, nullptr, std::move(done_writing));
 }
 
 void GlTextureBuffer::ViewDoneWriting(const GlTextureView& view) {
@@ -359,7 +360,7 @@ static std::shared_ptr<GpuBufferStorageImageFrame> ConvertToImageFrame(
       absl::make_unique<ImageFrame>(image_format, buf->width(), buf->height(),
                                     ImageFrame::kGlDefaultAlignmentBoundary);
   buf->GetProducerContext()->Run([buf, &output] {
-    auto view = buf->GetReadView(internal::types<GlTextureView>{}, nullptr, 0);
+    auto view = buf->GetReadView(internal::types<GlTextureView>{}, /*plane=*/0);
     ReadTexture(view, buf->format(), output->MutablePixelData(),
                 output->PixelDataSize());
   });
@@ -379,5 +380,29 @@ static auto kConverterRegistration2 =
     internal::GpuBufferStorageRegistry::Get()
         .RegisterConverter<GpuBufferStorageImageFrame, GlTextureBuffer>(
             ConvertFromImageFrame);
+
+#if MEDIAPIPE_GPU_BUFFER_USE_CV_PIXEL_BUFFER
+
+static std::shared_ptr<GpuBufferStorageCvPixelBuffer> ConvertToCvPixelBuffer(
+    std::shared_ptr<GlTextureBuffer> buf) {
+  auto output = absl::make_unique<GpuBufferStorageCvPixelBuffer>(
+      buf->width(), buf->height(), buf->format());
+  buf->GetProducerContext()->Run([buf, &output] {
+    TempGlFramebuffer framebuffer;
+    auto src = buf->GetReadView(internal::types<GlTextureView>{}, /*plane=*/0);
+    auto dst =
+        output->GetWriteView(internal::types<GlTextureView>{}, /*plane=*/0);
+    CopyGlTexture(src, dst);
+    glFlush();
+  });
+  return output;
+}
+
+static auto kConverterRegistrationCvpb =
+    internal::GpuBufferStorageRegistry::Get()
+        .RegisterConverter<GlTextureBuffer, GpuBufferStorageCvPixelBuffer>(
+            ConvertToCvPixelBuffer);
+
+#endif  // MEDIAPIPE_GPU_BUFFER_USE_CV_PIXEL_BUFFER
 
 }  // namespace mediapipe

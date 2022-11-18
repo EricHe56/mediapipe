@@ -221,12 +221,18 @@ cc_library(
         ":gpu_buffer_format",
         ":gpu_buffer_storage",
         ":gpu_buffer_storage_image_frame",
+        "@com_google_absl//absl/memory",
         # TODO: remove this dependency. Some other teams' tests
         # depend on having an indirect image_frame dependency, need to be
         # fixed first.
         "//mediapipe/framework/formats:image_frame",
-        "@com_google_absl//absl/memory",
-    ],
+    ] + select({
+        "//conditions:default": [],
+        ":platform_ios_with_gpu": [
+            ":gl_texture_util",
+            ":gpu_buffer_storage_cv_pixel_buffer",
+        ],
+    }),
 )
 
 cc_library(
@@ -344,6 +350,60 @@ cc_library(
     ],
 )
 
+mediapipe_cc_test(
+    name = "gpu_buffer_storage_cv_pixel_buffer_test",
+    size = "small",
+    timeout = "moderate",
+    srcs = ["gpu_buffer_storage_cv_pixel_buffer_test.cc"],
+    platforms = ["ios"],
+    deps = [
+        ":gl_texture_buffer",
+        ":gl_texture_util",
+        ":gpu_buffer",
+        ":gpu_buffer_storage_cv_pixel_buffer",
+        ":gpu_test_base",
+        "//mediapipe/framework/port:gtest_main",
+        "//mediapipe/framework/tool:test_util",
+        "//mediapipe/objc:util",
+        "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "cv_texture_cache_manager",
+    srcs = ["cv_texture_cache_manager.cc"],
+    hdrs = ["cv_texture_cache_manager.h"],
+    deps = [
+        ":pixel_buffer_pool_util",
+        "//mediapipe/framework/port:logging",
+        "//mediapipe/objc:CFHolder",
+        "@com_google_absl//absl/synchronization",
+    ],
+)
+
+cc_library(
+    name = "cv_pixel_buffer_pool_wrapper",
+    srcs = ["cv_pixel_buffer_pool_wrapper.cc"],
+    hdrs = ["cv_pixel_buffer_pool_wrapper.h"],
+    copts = select({
+        "//conditions:default": [],
+        "//mediapipe:apple": [
+            "-x objective-c++",
+            "-fobjc-arc",
+        ],
+    }),
+    deps = [
+        ":cv_texture_cache_manager",
+        ":gpu_buffer_format",
+        ":multi_pool",
+        ":pixel_buffer_pool_util",
+        "//mediapipe/framework/port:logging",
+        "//mediapipe/objc:CFHolder",
+        "//mediapipe/objc:util",
+        "@com_google_absl//absl/synchronization",
+    ],
+)
+
 cc_library(
     name = "gpu_buffer_storage_image_frame",
     hdrs = ["gpu_buffer_storage_image_frame.h"],
@@ -440,6 +500,7 @@ objc_library(
         ":gpu_buffer_multi_pool",
         ":gpu_shared_data_header",
         ":graph_support",
+        ":cv_texture_cache_manager",
         "//mediapipe/gpu:gl_context_options_cc_proto",
         "//mediapipe/framework:calculator_context",
         "//mediapipe/framework/port:ret_check",
@@ -555,6 +616,7 @@ cc_library(
         "//conditions:default": [],
         "//mediapipe:apple": [
             ":MPPGraphGPUData",
+            ":cv_texture_cache_manager",
         ],
     }),
 )
@@ -569,12 +631,30 @@ cc_library(
         ":gl_texture_buffer",
         ":gpu_buffer",
         ":gpu_shared_data_header",
+        ":multi_pool",
+        ":reusable_pool",
         "//mediapipe/framework:calculator_context",
         "//mediapipe/framework:calculator_node",
         "//mediapipe/framework/port:logging",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/synchronization",
     ],
+)
+
+cc_library(
+    name = "reusable_pool",
+    hdrs = ["reusable_pool.h"],
+    deps = [
+        ":multi_pool",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/synchronization",
+    ],
+)
+
+cc_library(
+    name = "multi_pool",
+    hdrs = ["multi_pool.h"],
+    deps = ["//mediapipe/util:resource_cache"],
 )
 
 cc_library(
@@ -604,6 +684,7 @@ cc_library(
         ":gl_base",
         ":gpu_buffer",
         ":gpu_shared_data_header",
+        ":multi_pool",
         "//mediapipe/framework:calculator_context",
         "//mediapipe/framework:calculator_node",
         "//mediapipe/framework/port:logging",
@@ -617,16 +698,31 @@ cc_library(
             ":gl_texture_buffer_pool",
         ],
         "//mediapipe:ios": [
+            ":cv_pixel_buffer_pool_wrapper",
+            ":cv_texture_cache_manager",
             ":pixel_buffer_pool_util",
             "//mediapipe/objc:CFHolder",
             "//mediapipe/objc:util",
         ],
         "//mediapipe:macos": [
+            ":cv_pixel_buffer_pool_wrapper",
+            ":cv_texture_cache_manager",
             ":pixel_buffer_pool_util",
             ":gl_texture_buffer",
             ":gl_texture_buffer_pool",
         ],
     }),
+)
+
+cc_library(
+    name = "gl_texture_util",
+    srcs = ["gl_texture_util.cc"],
+    hdrs = ["gl_texture_util.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":gl_base",
+        ":gl_texture_view",
+    ],
 )
 
 cc_library(
@@ -653,11 +749,9 @@ cc_library(
     name = "gl_calculator_helper",
     srcs = [
         "gl_calculator_helper.cc",
-        "gl_calculator_helper_impl_common.cc",
     ],
     hdrs = [
         "gl_calculator_helper.h",
-        "gl_calculator_helper_impl.h",
     ],
     linkopts = select({
         "//conditions:default": [],
@@ -690,6 +784,7 @@ cc_library(
         ":shader_util",
         "//mediapipe/framework:calculator_framework",
         "//mediapipe/framework:calculator_cc_proto",
+        "@com_google_absl//absl/base:core_headers",
         "//mediapipe/framework:calculator_context",
         "//mediapipe/framework:calculator_node",
         "//mediapipe/framework:calculator_contract",

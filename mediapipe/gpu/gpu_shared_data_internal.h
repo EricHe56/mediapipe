@@ -30,6 +30,7 @@
 #include "mediapipe/gpu/gpu_buffer_multi_pool.h"
 
 #ifdef __APPLE__
+#include "mediapipe/gpu/cv_texture_cache_manager.h"
 #ifdef __OBJC__
 @class MPPGraphGPUData;
 #else
@@ -85,6 +86,10 @@ class GpuResources {
 
   std::map<std::string, std::string> node_key_;
   std::map<std::string, std::shared_ptr<GlContext>> gl_key_context_;
+
+#ifdef MEDIAPIPE_GPU_BUFFER_USE_CV_PIXEL_BUFFER
+  std::shared_ptr<CvTextureCacheManager> texture_caches_;
+#endif  // MEDIAPIPE_GPU_BUFFER_USE_CV_PIXEL_BUFFER
 
   // The pool must be destructed before the gl_context, but after the
   // ios_gpu_data, so the declaration order is important.

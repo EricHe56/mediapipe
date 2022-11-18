@@ -406,7 +406,7 @@ export class WasmMediaPipeLib {
    */
   setVectorListener<T>(
       outputStreamName: string, callbackFcn: (data: T[]) => void) {
-    const buffer: T[] = [];
+    let buffer: T[] = [];
     this.wasmModule.vectorListeners = this.wasmModule.vectorListeners || {};
     this.wasmModule.vectorListeners[outputStreamName] =
         (data: unknown, index: number, length: number) => {
@@ -419,6 +419,7 @@ export class WasmMediaPipeLib {
             // the underlying data elements once we leave the scope of the
             // listener.
             callbackFcn(buffer);
+            buffer = [];
           }
         };
   }
@@ -970,8 +971,17 @@ async function runScript(scriptUrl: string) {
   if (typeof importScripts === 'function') {
     importScripts(scriptUrl.toString());
   } else {
-    await new Promise((resolve, reject) => {
-      fetch(scriptUrl).then(response => response.text()).then(text => Function(text)).then(resolve, reject);
+    const script = document.createElement('script');
+    script.setAttribute('src', scriptUrl);
+    script.setAttribute('crossorigin', 'anonymous');
+    return new Promise<void>((resolve) => {
+      script.addEventListener('load', () => {
+        resolve();
+      }, false);
+      script.addEventListener('error', () => {
+        resolve();
+      }, false);
+      document.body.appendChild(script);
     });
   }
 }

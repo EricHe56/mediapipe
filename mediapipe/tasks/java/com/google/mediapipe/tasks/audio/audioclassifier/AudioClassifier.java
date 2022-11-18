@@ -265,8 +265,10 @@ public final class AudioClassifier extends BaseAudioTaskApi {
   }
 
   /*
-   * Sends audio data (a block in a continuous audio stream) to perform audio classification. Only
-   * use this method when the AudioClassifier is created with the audio stream mode.
+   * Sends audio data (a block in a continuous audio stream) to perform audio classification, and
+   * the results will be available via the {@link ResultListener} provided in the 
+   * {@link AudioClassifierOptions}. Only use this method when the AudioClassifier is created with
+   * the audio stream mode.
    *
    * <p>The audio block is represented as a MediaPipe {@link AudioData} object. The audio data will
    * be resampled, accumulated, and framed to the proper size for the underlying model to consume.
