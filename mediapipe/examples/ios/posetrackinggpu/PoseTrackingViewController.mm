@@ -156,21 +156,46 @@ static const char* kLandmarksOutputStream = "pose_landmarks";
 //                + ", " + curPms.angles.get(matchPmsKeys[3]));
     int matchedPoseIdx = -1;
     double total = 0;
+    double rotateTotal = 0;
+    double rotateOffset = 0;
     for (int poseIdx=0; poseIdx < jsonPoseDataList.count; poseIdx++) {
         NSUInteger cntMatchPmsKeys = matchPmsKeys.count;
+        rotateTotal = 0;
+        rotateOffset = 0;
+        for (int i=0; i< cntMatchPmsKeys; i++) {
+          //  id pmsKey = [matchPmsKeys objectAtIndex:i];
+          NSString *pmsKey = (NSString *)[matchPmsKeys objectAtIndex:i];
+          
+          double curValue = [curPms[@"angles"][pmsKey] doubleValue];
+          double poseValue = [[jsonPoseDataList objectAtIndex:poseIdx][@"angles"][pmsKey] doubleValue];
+
+          if ((curValue*poseValue)<0 && (fabs(poseValue)>65)) {
+              if (curValue < 0) {
+                  rotateTotal += (180 + curValue) - poseValue;
+              }
+              else {
+                  rotateTotal += curValue - (180 + poseValue);
+              }
+          }
+          else {
+              rotateTotal += curValue - poseValue;
+          }
+
+        }
+        rotateOffset = rotateTotal / cntMatchPmsKeys; // matchPmsKeys.count;
         for (int i=0; i< cntMatchPmsKeys; i++) {
     //        id pmsKey = [matchPmsKeys objectAtIndex:i];
             NSString *pmsKey = (NSString *)[matchPmsKeys objectAtIndex:i];
             // ("11-13","12-14","13-15","14-16","23-25","24-26","25-27","26-28")
             double curValue = [curPms[@"angles"][pmsKey] doubleValue];
             double poseValue = [[jsonPoseDataList objectAtIndex:poseIdx][@"angles"][pmsKey] doubleValue];
-            double tmpDlt = fabs(curValue - poseValue);
+            double tmpDlt = fabs((curValue - rotateOffset) - poseValue);
 //            NSLog(@"%d %@ tmpDlt: %f", i, pmsKey, tmpDlt);
             if (tmpDlt < maxAngle) {
                 total += tmpDlt;
             }
             else if ((curValue*poseValue)<0 && (fabs(poseValue)>65)) {
-                tmpDlt = 180 - fabs(poseValue) - fabs(curValue); // donot need calculate this every time
+                tmpDlt = 180 - fabs(curValue - rotateOffset) - fabs(poseValue); // donot need calculate this every time
                 if (tmpDlt < maxAngle) {
                     total += tmpDlt;
                 }
@@ -192,6 +217,7 @@ static const char* kLandmarksOutputStream = "pose_landmarks";
     }
     [result setValue:[NSNumber numberWithInt:matchedPoseIdx] forKey:@"poseIdx"];
     [result setValue:[NSNumber numberWithDouble:total] forKey:@"totalDelta"];
+    [result setValue:[NSNumber numberWithDouble:rotateOffset] forKey:@"rotateOffset"];
 //    result.put("totalDelta", total);
     return result;
 }
