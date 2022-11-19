@@ -30,9 +30,15 @@ static const char* kLandmarksOutputStream = "pose_landmarks";
   toleranceCoefficient = 3.0;
   matchPmsKeys = @[@"angle11to13", @"angle12to14", @"angle13to15",  @"angle14to16", @"angle23to25", @"angle24to26", @"angle25to27", @"angle26to28"];
   
+  // get date string
+  NSDate *currentDate = [NSDate date];
+  NSDateFormatter *dateFormatter = [[NSDateFormatter alloc] init];
+  [dateFormatter setDateFormat:@"YYYY-MM-dd_HH_mm_ss"];
+  NSString *dateString = [dateFormatter stringFromDate:currentDate];
+  
   // load json from https url
   NSError *error;
-  NSString *url_string = [NSString stringWithFormat: @"https://ldn-t.oss.tinycloud.uk/poseDataList.json"];
+  NSString *url_string = [NSString stringWithFormat: @"https://ldn-t.oss.tinycloud.uk/poseDataList.json?t=%@", dateString];
 //    NSData *data = [NSData dataWithContentsOfURL: [NSURL URLWithString:url_string]];
   NSData* data = [NSData dataWithContentsOfURL:[NSURL URLWithString:url_string] options:NSDataReadingUncached error:&error];
   if (error) {
